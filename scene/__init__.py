@@ -78,7 +78,7 @@ class Scene:
             self.test_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.test_cameras, resolution_scale, args)
             
         if args.loaded_pth:
-            self.gaussians.create_from_pth(args.loaded_pth, self.cameras_extent)
+            self.gaussians.restore(model_args=torch.load(args.loaded_pth)[0], training_args=None)
         else:
             if self.loaded_iter:
                 self.gaussians.load_ply(os.path.join(self.model_path,
@@ -93,6 +93,6 @@ class Scene:
 
     def getTrainCameras(self, scale=1.0):
         return CameraDataset(self.train_cameras[scale].copy(), self.white_background)
-        
+
     def getTestCameras(self, scale=1.0):
         return CameraDataset(self.test_cameras[scale].copy(), self.white_background)

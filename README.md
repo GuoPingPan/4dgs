@@ -1,4 +1,15 @@
 # Real-time Photorealistic Dynamic Scene Representation and Rendering with 4D Gaussian Splatting
+
+
+https://pw4mm26qjm3.feishu.cn/wiki/B91ewmnyRix04pklIGjcKWNcnpc?from=from_copylink
+
+</br>
+</br>
+</br>
+</br>
+</br>
+
+
 ### [Project page](https://fudan-zvg.github.io/4d-gaussian-splatting/) | [Paper](https://arxiv.org/abs/2310.10642)
 > [**Real-time Photorealistic Dynamic Scene Representation and Rendering with 4D Gaussian Splatting**](https://arxiv.org/abs/2310.10642),            
 > Zeyu Yang, Hongye Yang, Zijie Pan, [Li Zhang](https://lzrobots.github.io)  

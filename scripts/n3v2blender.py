@@ -189,6 +189,7 @@ def camTodatabase(txtfile, database_path):
 
 def do_system(arg):
     print(f"==== running: {arg}")
+    import ipdb; ipdb.set_trace()
     err = os.system(arg)
     if err:
         print("FATAL: command failed")
@@ -222,151 +223,151 @@ if __name__ == '__main__':
     parser.add_argument("path", default="", help="input path to the video")
     args = parser.parse_args()
 
-    # path must end with / to make sure image path is relative
-    if args.path[-1] != '/':
-        args.path += '/'
+    # # path must end with / to make sure image path is relative
+    # if args.path[-1] != '/':
+    #     args.path += '/'
         
-    # extract images
-    videos = [os.path.join(args.path, vname) for vname in os.listdir(args.path) if vname.endswith(".mp4")]
-    images_path = os.path.join(args.path, "images/")
-    os.makedirs(images_path, exist_ok=True)
+    # # extract images
+    # videos = [os.path.join(args.path, vname) for vname in os.listdir(args.path) if vname.endswith(".mp4")]
+    # images_path = os.path.join(args.path, "images/")
+    # os.makedirs(images_path, exist_ok=True)
     
-    for video in videos:
-        cam_name = video.split('/')[-1].split('.')[-2]
-        do_system(f"ffmpeg -i {video} -start_number 0 {images_path}/{cam_name}_%04d.png")
+    # for video in videos:
+    #     cam_name = video.split('/')[-1].split('.')[-2]
+    #     do_system(f"ffmpeg -i {video} -start_number 0 {images_path}/{cam_name}_%04d.png")
         
-    # load data
-    images = [f[len(args.path):] for f in sorted(glob.glob(os.path.join(args.path, "images/", "*"))) if f.lower().endswith('png') or f.lower().endswith('jpg') or f.lower().endswith('jpeg')]
-    cams = sorted(set([im[7:12] for im in images]))
+    # # load data
+    # images = [f[len(args.path):] for f in sorted(glob.glob(os.path.join(args.path, "images/", "*"))) if f.lower().endswith('png') or f.lower().endswith('jpg') or f.lower().endswith('jpeg')]
+    # cams = sorted(set([im[7:12] for im in images]))
     
-    poses_bounds = np.load(os.path.join(args.path, 'poses_bounds.npy'))
-    N = poses_bounds.shape[0]
+    # poses_bounds = np.load(os.path.join(args.path, 'poses_bounds.npy'))
+    # N = poses_bounds.shape[0]
 
-    print(f'[INFO] loaded {len(images)} images from {len(cams)} videos, {N} poses_bounds as {poses_bounds.shape}')
+    # print(f'[INFO] loaded {len(images)} images from {len(cams)} videos, {N} poses_bounds as {poses_bounds.shape}')
 
-    assert N == len(cams)
+    # assert N == len(cams)
 
-    poses = poses_bounds[:, :15].reshape(-1, 3, 5) # (N, 3, 5)
-    bounds = poses_bounds[:, -2:] # (N, 2)
+    # poses = poses_bounds[:, :15].reshape(-1, 3, 5) # (N, 3, 5)
+    # bounds = poses_bounds[:, -2:] # (N, 2)
 
-    H, W, fl = poses[0, :, -1] 
+    # H, W, fl = poses[0, :, -1] 
 
-    print(f'[INFO] H = {H}, W = {W}, fl = {fl}')
+    # print(f'[INFO] H = {H}, W = {W}, fl = {fl}')
 
-    # inversion of this: https://github.com/Fyusion/LLFF/blob/c6e27b1ee59cb18f054ccb0f87a90214dbe70482/llff/poses/pose_utils.py#L51
-    poses = np.concatenate([poses[..., 1:2], poses[..., 0:1], -poses[..., 2:3], poses[..., 3:4]], -1) # (N, 3, 4)
+    # # inversion of this: https://github.com/Fyusion/LLFF/blob/c6e27b1ee59cb18f054ccb0f87a90214dbe70482/llff/poses/pose_utils.py#L51
+    # poses = np.concatenate([poses[..., 1:2], poses[..., 0:1], -poses[..., 2:3], poses[..., 3:4]], -1) # (N, 3, 4)
 
-    # to homogeneous 
-    last_row = np.tile(np.array([0, 0, 0, 1]), (len(poses), 1, 1)) # (N, 1, 4)
-    poses = np.concatenate([poses, last_row], axis=1) # (N, 4, 4) 
+    # # to homogeneous 
+    # last_row = np.tile(np.array([0, 0, 0, 1]), (len(poses), 1, 1)) # (N, 1, 4)
+    # poses = np.concatenate([poses, last_row], axis=1) # (N, 4, 4) 
 
-    # the following stuff are from colmap2nerf... 
-    poses[:, 0:3, 1] *= -1
-    poses[:, 0:3, 2] *= -1
-    poses = poses[:, [1, 0, 2, 3], :] # swap y and z
-    poses[:, 2, :] *= -1 # flip whole world upside down
+    # # the following stuff are from colmap2nerf... 
+    # poses[:, 0:3, 1] *= -1
+    # poses[:, 0:3, 2] *= -1
+    # poses = poses[:, [1, 0, 2, 3], :] # swap y and z
+    # poses[:, 2, :] *= -1 # flip whole world upside down
 
-    up = poses[:, 0:3, 1].sum(0)
-    up = up / np.linalg.norm(up)
-    R = rotmat(up, [0, 0, 1]) # rotate up vector to [0,0,1]
-    R = np.pad(R, [0, 1])
-    R[-1, -1] = 1
+    # up = poses[:, 0:3, 1].sum(0)
+    # up = up / np.linalg.norm(up)
+    # R = rotmat(up, [0, 0, 1]) # rotate up vector to [0,0,1]
+    # R = np.pad(R, [0, 1])
+    # R[-1, -1] = 1
 
-    poses = R @ poses
+    # poses = R @ poses
 
-    totw = 0.0
-    totp = np.array([0.0, 0.0, 0.0])
-    for i in range(N):
-        mf = poses[i, :3, :]
-        for j in range(i + 1, N):
-            mg = poses[j, :3, :]
-            p, w = closest_point_2_lines(mf[:,3], mf[:,2], mg[:,3], mg[:,2])
-            #print(i, j, p, w)
-            if w > 0.01:
-                totp += p * w
-                totw += w
-    totp /= totw
-    print(f'[INFO] totp = {totp}')
-    poses[:, :3, 3] -= totp
+    # totw = 0.0
+    # totp = np.array([0.0, 0.0, 0.0])
+    # for i in range(N):
+    #     mf = poses[i, :3, :]
+    #     for j in range(i + 1, N):
+    #         mg = poses[j, :3, :]
+    #         p, w = closest_point_2_lines(mf[:,3], mf[:,2], mg[:,3], mg[:,2])
+    #         #print(i, j, p, w)
+    #         if w > 0.01:
+    #             totp += p * w
+    #             totw += w
+    # totp /= totw
+    # print(f'[INFO] totp = {totp}')
+    # poses[:, :3, 3] -= totp
 
-    avglen = np.linalg.norm(poses[:, :3, 3], axis=-1).mean()
+    # avglen = np.linalg.norm(poses[:, :3, 3], axis=-1).mean()
 
-    poses[:, :3, 3] *= 4.0 / avglen
+    # poses[:, :3, 3] *= 4.0 / avglen
 
-    print(f'[INFO] average radius = {avglen}')
+    # print(f'[INFO] average radius = {avglen}')
     
-    train_frames = []
-    test_frames = []
-    for i in range(N):
-        cam_frames = [{'file_path': im.lstrip("/").split('.')[0], 
-                       'transform_matrix': poses[i].tolist(),
-                       'time': int(im.lstrip("/").split('.')[0][-4:]) / 30.} for im in images if cams[i] in im]
-        if i == 0:
-            test_frames += cam_frames
-        else:
-            train_frames += cam_frames
+    # train_frames = []
+    # test_frames = []
+    # for i in range(N):
+    #     cam_frames = [{'file_path': im.lstrip("/").split('.')[0], 
+    #                    'transform_matrix': poses[i].tolist(),
+    #                    'time': int(im.lstrip("/").split('.')[0][-4:]) / 30.} for im in images if cams[i] in im]
+    #     if i == 0:
+    #         test_frames += cam_frames
+    #     else:
+    #         train_frames += cam_frames
 
-    train_transforms = {
-        'w': W,
-        'h': H,
-        'fl_x': fl,
-        'fl_y': fl,
-        'cx': W // 2,
-        'cy': H // 2,
-        'frames': train_frames,
-    }
-    test_transforms = {
-        'w': W,
-        'h': H,
-        'fl_x': fl,
-        'fl_y': fl,
-        'cx': W // 2,
-        'cy': H // 2,
-        'frames': test_frames,
-    }
+    # train_transforms = {
+    #     'w': W,
+    #     'h': H,
+    #     'fl_x': fl,
+    #     'fl_y': fl,
+    #     'cx': W // 2,
+    #     'cy': H // 2,
+    #     'frames': train_frames,
+    # }
+    # test_transforms = {
+    #     'w': W,
+    #     'h': H,
+    #     'fl_x': fl,
+    #     'fl_y': fl,
+    #     'cx': W // 2,
+    #     'cy': H // 2,
+    #     'frames': test_frames,
+    # }
 
-    train_output_path = os.path.join(args.path, 'transforms_train.json')
-    test_output_path = os.path.join(args.path, 'transforms_test.json')
-    print(f'[INFO] write to {train_output_path} and {test_output_path}')
-    with open(train_output_path, 'w') as f:
-        json.dump(train_transforms, f, indent=2)
-    with open(test_output_path, 'w') as f:
-        json.dump(test_transforms, f, indent=2)
+    # train_output_path = os.path.join(args.path, 'transforms_train.json')
+    # test_output_path = os.path.join(args.path, 'transforms_test.json')
+    # print(f'[INFO] write to {train_output_path} and {test_output_path}')
+    # with open(train_output_path, 'w') as f:
+    #     json.dump(train_transforms, f, indent=2)
+    # with open(test_output_path, 'w') as f:
+    #     json.dump(test_transforms, f, indent=2)
     
     colmap_workspace = os.path.join(args.path, 'tmp')
-    blender2opencv = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
-    W, H, cx, cy, fx, fy = int(W), int(H), train_transforms['cx'], train_transforms['cy'], train_transforms['fl_x'], train_transforms['fl_y']
-    os.makedirs(os.path.join(colmap_workspace, 'created', 'sparse'), exist_ok=True)
+    # blender2opencv = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+    # W, H, cx, cy, fx, fy = int(W), int(H), train_transforms['cx'], train_transforms['cy'], train_transforms['fl_x'], train_transforms['fl_y']
+    # os.makedirs(os.path.join(colmap_workspace, 'created', 'sparse'), exist_ok=True)
     
-    fname2pose = {}
-    with open(os.path.join(colmap_workspace, 'created/sparse/cameras.txt'), 'w') as f:
-        f.write(f'1 PINHOLE {W} {H} {fx} {fy} {cx} {cy}')
-        for frame in train_frames:
-            if frame['time'] == 0:
-                fname = frame['file_path'].split('/')[-1] + '.png'
-                pose = np.array(frame['transform_matrix']) @ blender2opencv
-                fname2pose.update({fname: pose})
+    # fname2pose = {}
+    # with open(os.path.join(colmap_workspace, 'created/sparse/cameras.txt'), 'w') as f:
+    #     f.write(f'1 PINHOLE {W} {H} {fx} {fy} {cx} {cy}')
+    #     for frame in train_frames:
+    #         if frame['time'] == 0:
+    #             fname = frame['file_path'].split('/')[-1] + '.png'
+    #             pose = np.array(frame['transform_matrix']) @ blender2opencv
+    #             fname2pose.update({fname: pose})
                 
-    os.makedirs(os.path.join(colmap_workspace, 'images'), exist_ok=True)
-    for fname in fname2pose.keys():
-        os.symlink(os.path.abspath(os.path.join(images_path, fname)), os.path.join(colmap_workspace, 'images', fname))
+    # os.makedirs(os.path.join(colmap_workspace, 'images'), exist_ok=True)
+    # for fname in fname2pose.keys():
+    #     os.symlink(os.path.abspath(os.path.join(images_path, fname)), os.path.join(colmap_workspace, 'images', fname))
                 
-    with open(os.path.join(colmap_workspace, 'created/sparse/images.txt'), 'w') as f:
-        idx = 1
-        for fname in fname2pose.keys():
-            pose = fname2pose[fname]
-            R = np.linalg.inv(pose[:3, :3])
-            T = -np.matmul(R, pose[:3, 3])
-            q0 = 0.5 * math.sqrt(1 + R[0, 0] + R[1, 1] + R[2, 2])
-            q1 = (R[2, 1] - R[1, 2]) / (4 * q0)
-            q2 = (R[0, 2] - R[2, 0]) / (4 * q0)
-            q3 = (R[1, 0] - R[0, 1]) / (4 * q0)
+    # with open(os.path.join(colmap_workspace, 'created/sparse/images.txt'), 'w') as f:
+    #     idx = 1
+    #     for fname in fname2pose.keys():
+    #         pose = fname2pose[fname]
+    #         R = np.linalg.inv(pose[:3, :3])
+    #         T = -np.matmul(R, pose[:3, 3])
+    #         q0 = 0.5 * math.sqrt(1 + R[0, 0] + R[1, 1] + R[2, 2])
+    #         q1 = (R[2, 1] - R[1, 2]) / (4 * q0)
+    #         q2 = (R[0, 2] - R[2, 0]) / (4 * q0)
+    #         q3 = (R[1, 0] - R[0, 1]) / (4 * q0)
 
-            f.write(f'{idx} {q0} {q1} {q2} {q3} {T[0]} {T[1]} {T[2]} 1 {fname}\n\n')
-            idx += 1
+    #         f.write(f'{idx} {q0} {q1} {q2} {q3} {T[0]} {T[1]} {T[2]} 1 {fname}\n\n')
+    #         idx += 1
     
-    with open(os.path.join(colmap_workspace, 'created/sparse/points3D.txt'), 'w') as f:
-        f.write('')
+    # with open(os.path.join(colmap_workspace, 'created/sparse/points3D.txt'), 'w') as f:
+    #     f.write('')
     
     db_path = os.path.join(colmap_workspace, 'database.db')
     
